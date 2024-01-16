@@ -4,6 +4,7 @@
 #include "LED.h"
 #include "Consumption_LED.h"
 #include "Generation_LED.h"
+#include "main.h"
 
 #define num_leds 40
 #define data_pin 2
@@ -27,7 +28,7 @@ void send_data()
   FastLED.show();
 }
 
-void updateleds(int consumption, int generation)
+void main::updateleds(int consumption, int generation)
 {
   for (int i = 0; i < 20; i++)
   {
@@ -81,7 +82,6 @@ void setup()
   }
 
   Serial.println("End");
-  updateleds(1000, 1250);
 }
 
 void loop()
