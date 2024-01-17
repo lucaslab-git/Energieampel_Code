@@ -5,11 +5,10 @@
 #include "Consumption_LED.h"
 #include "Generation_LED.h"
 #include "ESPAsyncWebServer.h"
-#include "Brightness_sensor.h"
 #include <WiFi.h>
 
-const char *ssid = "Villa_Kunterbunt";
-const char *password = "956795,Luca";
+const char *ssid = "demospot";
+const char *password = "energieampel";
 
 #define num_leds 40
 #define data_pin 2
@@ -19,28 +18,32 @@ int scaling_per_led = 250;
 CRGB led_strip[num_leds];
 Consumption_LED con_led[num_leds / 2];
 Generation_LED gen_led[num_leds / 2];
-Brightness_sensor brightness_sensor; // konstuktor A0
 AsyncWebServer server(80);
 
 void send_data()
 {
+  for (int i = 19; i > 0; i--)
+  {
+    led_strip[i] = CRGB(0, 0, 0);
+    led_strip[i + 20] = CRGB(0, 0, 0);
+    delay(85);
+    FastLED.show();
+  }
   for (int i = 0; i < 20; i++)
   {
     led_strip[i] = con_led[i].get_color();
+    led_strip[i + 20] = gen_led[i].get_color();
+    delay(85);
+    FastLED.show();
   }
-  for (int i = 20; i < 40; i++)
-  {
-    led_strip[i] = gen_led[i - 20].get_color();
-  }
-  FastLED.show();
 }
 
 void updateleds(int consumption, int generation)
 {
-  brightness_sensor.read_sensor();
+
   for (int i = 0; i < 20; i++)
   {
-    con_led[i].set_intensity(brightness_sensor.get_brightness());
+
     if (!con_led[i].get_state() && i < (consumption / scaling_per_led))
     {
       con_led[i].set_state(true);
@@ -53,7 +56,6 @@ void updateleds(int consumption, int generation)
 
   for (int i = 0; i < 20; i++)
   {
-    gen_led[i].set_intensity(brightness_sensor.get_brightness());
     if (!gen_led[i].get_state() && i < (generation / scaling_per_led))
     {
       gen_led[i].set_state(true);
@@ -72,17 +74,18 @@ void set_url()
 
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) // url/update?con?gen
             {
-
+      Serial.println("update");
       AsyncWebParameter* con = request->getParam(0);
       AsyncWebParameter* gen = request->getParam(1);
-      updateleds(con->name().toInt(), gen->name().toInt());
+      Serial.println(con->value().toInt());
+      Serial.println(gen->value().toInt());
+      updateleds(con->value().toInt(), gen->value().toInt());
       request->send(200, "text/plain", "message received"); });
 }
 
 void setup()
 {
-  WiFi.begin(ssid, password);
-
+  FastLED.addLeds<WS2812B, data_pin, RGB>(led_strip, num_leds);
   for (int i = 0; i < 20; i++)
   {
     con_led[i].set_debug_mode(true);
@@ -90,11 +93,14 @@ void setup()
 
   Serial.begin(9600);
 
-  FastLED.addLeds<WS2812B, data_pin, RGB>(led_strip, num_leds);
+  Serial.println("Start");
 
-  int i;
+  int i = 0;
+
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
   {
+    Serial.println(i);
     i++;
     led_strip[i] = con_led[i].get_color();
     FastLED.show();
@@ -102,6 +108,8 @@ void setup()
     Serial.println("Connecting to WiFi..");
   }
   Serial.println(WiFi.localIP());
+  led_strip[19] = con_led[19].get_color();
+  FastLED.show();
 
   for (int i = 0; i < 20; i++)
   {
