@@ -5,6 +5,7 @@
 #include "Consumption_LED.h"
 #include "Generation_LED.h"
 #include "ESPAsyncWebServer.h"
+#include "Brightness_sensor.h"
 #include <WiFi.h>
 
 const char *ssid = "Villa_Kunterbunt";
@@ -18,7 +19,7 @@ int scaling_per_led = 250;
 CRGB led_strip[num_leds];
 Consumption_LED con_led[num_leds / 2];
 Generation_LED gen_led[num_leds / 2];
-
+Brightness_sensor brightness_sensor; // konstuktor A0
 AsyncWebServer server(80);
 
 void send_data()
@@ -36,8 +37,10 @@ void send_data()
 
 void updateleds(int consumption, int generation)
 {
+  brightness_sensor.read_sensor();
   for (int i = 0; i < 20; i++)
   {
+    con_led[i].set_intensity(brightness_sensor.get_brightness());
     if (!con_led[i].get_state() && i < (consumption / scaling_per_led))
     {
       con_led[i].set_state(true);
@@ -50,6 +53,7 @@ void updateleds(int consumption, int generation)
 
   for (int i = 0; i < 20; i++)
   {
+    gen_led[i].set_intensity(brightness_sensor.get_brightness());
     if (!gen_led[i].get_state() && i < (generation / scaling_per_led))
     {
       gen_led[i].set_state(true);
