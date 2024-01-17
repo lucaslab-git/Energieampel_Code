@@ -66,11 +66,11 @@ void updateleds(int consumption, int generation)
 void set_url()
 {
 
-  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) // url/update?con?gen
             {
 
       AsyncWebParameter* con = request->getParam(0);
-      AsyncWebParameter* gen = request->getParam(0);
+      AsyncWebParameter* gen = request->getParam(1);
       updateleds(con->name().toInt(), gen->name().toInt());
       request->send(200, "text/plain", "message received"); });
 }
@@ -97,6 +97,7 @@ void setup()
     delay(1000);
     Serial.println("Connecting to WiFi..");
   }
+  Serial.println(WiFi.localIP());
 
   for (int i = 0; i < 20; i++)
   {
