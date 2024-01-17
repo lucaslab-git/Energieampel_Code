@@ -4,7 +4,11 @@
 #include "LED.h"
 #include "Consumption_LED.h"
 #include "Generation_LED.h"
-#include "main.h"
+#include "ESPAsyncWebServer.h"
+#include <WiFi.h>
+
+const char *ssid = "Villa_Kunterbunt";
+const char *password = "956795,Luca";
 
 #define num_leds 40
 #define data_pin 2
@@ -14,6 +18,8 @@ int scaling_per_led = 250;
 CRGB led_strip[num_leds];
 Consumption_LED con_led[num_leds / 2];
 Generation_LED gen_led[num_leds / 2];
+
+AsyncWebServer server(80);
 
 void send_data()
 {
@@ -28,7 +34,7 @@ void send_data()
   FastLED.show();
 }
 
-void main::updateleds(int consumption, int generation)
+void updateleds(int consumption, int generation)
 {
   for (int i = 0; i < 20; i++)
   {
@@ -57,8 +63,22 @@ void main::updateleds(int consumption, int generation)
   send_data();
 }
 
+void set_url()
+{
+
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+
+      AsyncWebParameter* con = request->getParam(0);
+      AsyncWebParameter* gen = request->getParam(0);
+      updateleds(con->name().toInt(), gen->name().toInt());
+      request->send(200, "text/plain", "message received"); });
+}
+
 void setup()
 {
+  WiFi.begin(ssid, password);
+
   for (int i = 0; i < 20; i++)
   {
     con_led[i].set_debug_mode(true);
@@ -68,12 +88,14 @@ void setup()
 
   FastLED.addLeds<WS2812B, data_pin, RGB>(led_strip, num_leds);
 
-  // simulation von wifi connection für debug led
-  for (int i = 0; i < 20; i++)
+  int i;
+  while (WiFi.status() != WL_CONNECTED)
   {
+    i++;
     led_strip[i] = con_led[i].get_color();
     FastLED.show();
-    delay(200);
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
   }
 
   for (int i = 0; i < 20; i++)
@@ -82,6 +104,8 @@ void setup()
   }
 
   Serial.println("End");
+  set_url();
+  server.begin();
 }
 
 void loop()
